@@ -90,6 +90,20 @@ class ModuleBasic(PluginModuleBase):
                 img = Image.open(BytesIO(img_bytes))
                 img.save(filepath)
                 img_url = SupportDiscord.discord_proxy_image_localfile(filepath)
+#############################################################################################################################
+# 구매한 로또 번호와 회차 정보 메시지 추가
+                numbers_for_url = []
+                msg += "\n구매한 번호:\n"
+                for lotto_numbers in ret['buy']['buy_list']:
+                formatted_numbers = ', '.join(lotto_numbers)  # 번호 포맷팅
+                numbers_concat = ''.join(lotto_numbers)  # URL용 번호 연결
+                msg += f"- {formatted_numbers}\n"
+                numbers_for_url.append(numbers_concat)
+# URL 생성
+                url_numbers = 'q'.join(numbers_for_url)
+                lotto_url = f"https://m.dhlottery.co.kr/qr.do?method=winQr&v={ret['buy']['round']}q{url_numbers}"
+                msg += f"\n결과 확인 링크: {lotto_url}\n"
+#############################################################################################################################                
                 if noti_mode == 'real_buy':
                     notify = True
                 db_item = ModelLottoItem()
