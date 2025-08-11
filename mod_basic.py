@@ -96,9 +96,9 @@ class ModuleBasic(PluginModuleBase):
                 # 기본 메시지 작성
                 msg = (
                     "로또\n"
-                    f"예치금 : {ret['data'].get('deposit', 'N/A')}\n"
-                    f"구매가능 : {ret['data'].get('available_count', 'N/A')}\n"
-                    f"구매 수 : {ret['count']}\n"
+                    f"예치금 : {ret.get('deposit', 'N/A')}\n"
+                    f"구매가능 : {ret.get('available_count', 'N/A')}\n"
+                    f"구매 수 : {len(ret['buy']['buy_list'])}\n"
                     f"회차 : {ret['buy']['round']}\n"
                 )
             
