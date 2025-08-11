@@ -1,6 +1,9 @@
 import base64
 import random
 from io import BytesIO
+import os
+import time
+import traceback
 
 from PIL import Image
 from support import SupportDiscord
@@ -67,10 +70,10 @@ class ModuleBasic(PluginModuleBase):
             ret = self.do_action()  # mode='test_info' / 'test_buy' / 'buy'(기본)
             img_bytes = None
             img_url = None
-            
+
             msg = '로또'
-            msg += f"\n예치금 : {ret['deposit']}"
-            msg += f"\n구매가능 : {ret['available_count']}"
+            msg += f"\n예치금 : {ret.get('deposit', 'N/A')}"
+            msg += f"\n구매가능 : {ret.get('available_count', 'N/A')}"
 
             if ret['status'] == 'NOT_AVAILABLE_COUNT':
                 msg += "\n구매 가능 건수가 없어 종료"
@@ -81,63 +84,44 @@ class ModuleBasic(PluginModuleBase):
                 if noti_mode == 'real_buy':
                     notify = True
             else:
-                msg += f"\n구매 수 : {len(ret['buy']['buy_list'])}"
-                msg += f"\n회차 : {ret['buy']['round']}"
+                if 'buy' in ret and len(ret['buy'].get('buy_list', [])) > 0:
+                    msg += f"\n구매 수 : {len(ret['buy']['buy_list'])}"
+                    msg += f"\n회차 : {ret['buy']['round']}"
+                    msg += "\n구매한 번호:\n"
+                    numbers_for_url = []
+                    for lotto_numbers in ret['buy']['buy_list']:
+                        formatted_numbers = ', '.join(map(str, lotto_numbers))
+                        numbers_concat = ''.join(map(str, lotto_numbers))
+                        msg += f"- {formatted_numbers}\n"
+                        numbers_for_url.append(numbers_concat)
+                    lotto_url = f"https://m.dhlottery.co.kr/qr.do?method=winQr&v={ret['buy']['round']}q{'q'.join(numbers_for_url)}"
+                    msg += f"\n결과 확인 링크: {lotto_url}\n"
+                else:
+                    msg += "\n로또 구매 실패"
 
-            if 'buy' in ret and len(ret['buy']['buy_list']) > 0:
+            if 'buy' in ret and len(ret['buy'].get('buy_list', [])) > 0:
                 img_bytes = base64.b64decode(ret['buy']['screen_shot'])
                 filepath = os.path.join(F.config['path_data'], 'tmp', f"proxy_{str(time.time())}.png")
                 img = Image.open(BytesIO(img_bytes))
                 img.save(filepath)
                 img_url = SupportDiscord.discord_proxy_image_localfile(filepath)
-#############################################################################################################################
-# 구매한 로또 번호와 회차 정보 메시지 추가
-            if 'buy' in ret and len(ret['buy'].get('buy_list', [])) > 0:
-                # 기본 메시지 작성
-                msg = (
-                    "로또\n"
-                    f"예치금 : {ret.get('deposit', 'N/A')}\n"
-                    f"구매가능 : {ret.get('available_count', 'N/A')}\n"
-                    f"구매 수 : {len(ret['buy']['buy_list'])}\n"
-                    f"회차 : {ret['buy']['round']}\n"
-                )
-            
-                # 구매한 로또 번호와 회차 정보 메시지 추가
-                numbers_for_url = []
-                msg += "\n구매한 번호:\n"
-                for lotto_numbers in ret['buy']['buy_list']:
-                    formatted_numbers = ', '.join(map(str, lotto_numbers))  # 번호 포맷팅
-                    numbers_concat = ''.join(map(str, lotto_numbers))       # URL용 번호 연결
-                    msg += f"- {formatted_numbers}\n"
-                    numbers_for_url.append(numbers_concat)
-            
-                # URL 생성
-                round_num = ret['buy']['round']
-                url_numbers = 'q'.join(numbers_for_url)
-                lotto_url = f"https://m.dhlottery.co.kr/qr.do?method=winQr&v={round_num}q{url_numbers}"
-                msg += f"\n결과 확인 링크: {lotto_url}\n"
-            
-                # 텔레그램 전송
-                ToolNotify.send_message(msg)
-            else:
-                ToolNotify.send_message("로또 구매 실패")
-#############################################################################################################################                
-                if noti_mode == 'real_buy':
-                    notify = True
-                db_item = ModelLottoItem()
-                db_item.round = ret['buy']['round']
-                db_item.count = len(ret['buy']['buy_list'])
-                db_item.data = ret
-                db_item.img = img_url
-                db_item.save()
-           
+
+            # DB 저장 (성공/실패 상관없이 처리)
+            db_item = ModelLottoItem()
+            db_item.round = ret['buy']['round'] if 'buy' in ret else None
+            db_item.count = len(ret['buy']['buy_list']) if 'buy' in ret else 0
+            db_item.data = ret
+            db_item.img = img_url
+            db_item.save()
+
             if noti_mode == 'always':
                 notify = True
             elif noti_mode == 'none':
                 notify = False
-            
+
             if notify:
                 ToolNotify.send_message(msg, 'lotto', image_url=img_url)
+
         except Exception as e:
             logger.error(f'Exception:{str(e)}')
             logger.error(traceback.format_exc())
@@ -157,7 +141,7 @@ class ModuleBasic(PluginModuleBase):
             ret['available_count'] = 5 - ret['history']['count']
             if mode == 'test_info':
                 return ret
-            
+
             buy_data = self.get_buy_data()
             if ret['available_count'] == 0:
                 ret['status'] = 'NOT_AVAILABLE_COUNT'
@@ -187,7 +171,6 @@ class ModuleBasic(PluginModuleBase):
             ret['log'] = str(traceback.format_exc())
         finally:
             lotto.driver_quit()
-            #P.logger.debug(d(ret))
         return ret
 
     @staticmethod
