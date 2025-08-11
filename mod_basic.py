@@ -95,13 +95,14 @@ class ModuleBasic(PluginModuleBase):
                 numbers_for_url = []
                 msg += "\n구매한 번호:\n"
                 for lotto_numbers in ret['buy']['buy_list']:
-                formatted_numbers = ', '.join(lotto_numbers)  # 번호 포맷팅
-                numbers_concat = ''.join(lotto_numbers)  # URL용 번호 연결
-                msg += f"- {formatted_numbers}\n"
-                numbers_for_url.append(numbers_concat)
+                    formatted_numbers = ', '.join(lotto_numbers)
+                    numbers_concat = ''.join(lotto_numbers)
+                    msg += f"- {formatted_numbers}\n"
+                    numbers_for_url.append(numbers_concat)
 # URL 생성
+                round_num = ret['buy']['round']
                 url_numbers = 'q'.join(numbers_for_url)
-                lotto_url = f"https://m.dhlottery.co.kr/qr.do?method=winQr&v={ret['buy']['round']}q{url_numbers}"
+                lotto_url = f"https://m.dhlottery.co.kr/qr.do?method=winQr&v={round_num}q{url_numbers}"
                 msg += f"\n결과 확인 링크: {lotto_url}\n"
 #############################################################################################################################                
                 if noti_mode == 'real_buy':
