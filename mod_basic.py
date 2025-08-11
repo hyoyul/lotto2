@@ -92,7 +92,7 @@ class ModuleBasic(PluginModuleBase):
                 img_url = SupportDiscord.discord_proxy_image_localfile(filepath)
 #############################################################################################################################
 # 구매한 로또 번호와 회차 정보 메시지 추가
-            if ret['buy']['ret'] == 'success':
+            if 'buy' in ret and len(ret['buy'].get('buy_list', [])) > 0:
                 # 기본 메시지 작성
                 msg = (
                     "로또\n"
@@ -106,8 +106,8 @@ class ModuleBasic(PluginModuleBase):
                 numbers_for_url = []
                 msg += "\n구매한 번호:\n"
                 for lotto_numbers in ret['buy']['buy_list']:
-                    formatted_numbers = ', '.join(lotto_numbers)  # 번호 포맷팅
-                    numbers_concat = ''.join(lotto_numbers)       # URL용 번호 연결
+                    formatted_numbers = ', '.join(map(str, lotto_numbers))  # 번호 포맷팅
+                    numbers_concat = ''.join(map(str, lotto_numbers))       # URL용 번호 연결
                     msg += f"- {formatted_numbers}\n"
                     numbers_for_url.append(numbers_concat)
             
