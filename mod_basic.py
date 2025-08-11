@@ -92,18 +92,35 @@ class ModuleBasic(PluginModuleBase):
                 img_url = SupportDiscord.discord_proxy_image_localfile(filepath)
 #############################################################################################################################
 # 구매한 로또 번호와 회차 정보 메시지 추가
+            if ret['buy']['ret'] == 'success':
+                # 기본 메시지 작성
+                msg = (
+                    "로또\n"
+                    f"예치금 : {ret['data'].get('deposit', 'N/A')}\n"
+                    f"구매가능 : {ret['data'].get('available_count', 'N/A')}\n"
+                    f"구매 수 : {ret['count']}\n"
+                    f"회차 : {ret['buy']['round']}\n"
+                )
+            
+                # 구매한 로또 번호와 회차 정보 메시지 추가
                 numbers_for_url = []
                 msg += "\n구매한 번호:\n"
                 for lotto_numbers in ret['buy']['buy_list']:
-                    formatted_numbers = ', '.join(lotto_numbers)
-                    numbers_concat = ''.join(lotto_numbers)
+                    formatted_numbers = ', '.join(lotto_numbers)  # 번호 포맷팅
+                    numbers_concat = ''.join(lotto_numbers)       # URL용 번호 연결
                     msg += f"- {formatted_numbers}\n"
                     numbers_for_url.append(numbers_concat)
-# URL 생성
+            
+                # URL 생성
                 round_num = ret['buy']['round']
                 url_numbers = 'q'.join(numbers_for_url)
                 lotto_url = f"https://m.dhlottery.co.kr/qr.do?method=winQr&v={round_num}q{url_numbers}"
                 msg += f"\n결과 확인 링크: {lotto_url}\n"
+            
+                # 텔레그램 전송
+                ToolNotify.send_message(msg)
+            else:
+                ToolNotify.send_message("로또 구매 실패")
 #############################################################################################################################                
                 if noti_mode == 'real_buy':
                     notify = True
